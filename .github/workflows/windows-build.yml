@@ -1,4 +1,4 @@
-name: Windows VST3 and Standalone
+name: VST3 and Standalone builds
 
 on:
   push:
@@ -27,3 +27,24 @@ jobs:
           path: |
             build/DRMRESHAPE_artefacts/Release/VST3
             build/DRMRESHAPE_artefacts/Release/Standalone
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DDRMRESHAPE_BUILD_TESTS=ON
+      - name: Build VST3 and Standalone
+        run: cmake --build build --config Release --parallel 4 --target DRMRESHAPE_VST3 DRMRESHAPE_Standalone DRMRESHAPE_DSPTests
+      - name: Run DSP checks
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Package
+        run: |
+          mkdir -p out
+          ditto -c -k --keepParent build/DRMRESHAPE_artefacts/Release/VST3/DRM-RESHAPE.vst3 out/DRM-RESHAPE-macOS-vst3.zip
+          ditto -c -k --keepParent build/DRMRESHAPE_artefacts/Release/Standalone/DRM-RESHAPE.app out/DRM-RESHAPE-macOS-standalone.zip
+      - name: Upload plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DRM-RESHAPE-macOS
+          path: out
